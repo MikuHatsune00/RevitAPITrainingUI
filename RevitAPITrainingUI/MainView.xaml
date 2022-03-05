@@ -8,17 +8,13 @@
              d:DesignHeight="250" d:DesignWidth="300"
              Title="Идентификатор элемента">
     <StackPanel>
-        <Label Content="Количество труб в проекте"
+        <Label Content="Выбор стен"
                Margin="5"/>
-        <Button Content="Показать" Command="{Binding CommandPipeN}"
-                Margin="5"/>
-        <Label Content="Объем стен в проекте"
-               Margin="5"/>
-        <Button Content="Показать" Command="{Binding CommandWallV}"
-                Margin="5"/>
-        <Label Content="Количество дверей в проекте"
-               Margin="5"/>
-        <Button Content="Показать" Command="{Binding CommandDoorN}"
-                Margin="5"/>
+        <ComboBox ItemsSource="{Binding Walls}"
+                 SelectedValue="{Binding SelectedWall}"
+       DisplayMemberPath="Name"
+                  Margin="5"/>
+        <Button Content="Применить"
+                Command="{Binding SaveCommand}"/>
     </StackPanel>
 </Window>

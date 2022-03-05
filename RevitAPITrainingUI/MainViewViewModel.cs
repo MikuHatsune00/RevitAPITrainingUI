@@ -17,98 +17,44 @@ namespace RevitAPITrainingUI
     {
         private ExternalCommandData _commandData;
 
-        public DelegateCommand CommandPipeN { get; }
-        public DelegateCommand CommandWallV { get; }
-        public DelegateCommand CommandDoorN { get; }
-
+        public DelegateCommand SaveCommand { get; }
+        public List<Element> PickedObjects { get;  }
+        public List<WallType> Walls { get; } = new List<WallType>();
+        public WallType SelectedWall { get; set; }
         public MainViewViewModel(ExternalCommandData commandData)
         {
             _commandData = commandData;
-            CommandPipeN = new DelegateCommand(OnCommandPipeN);
-            CommandWallV = new DelegateCommand(OnCommandWallV);
-            CommandDoorN = new DelegateCommand(OnCommandDoorN);
+            SaveCommand = new DelegateCommand(OnSaveCommand);
+            PickedObjects = SelectionUtils.PickObjects(commandData);
+            Walls = WallsUtils.GetWalls(commandData);
         }
-        public event EventHandler HideRequest;
-        private void RaiseHideRequest()
+       private void OnSaveCommand()
         {
-            HideRequest?.Invoke(this, EventArgs.Empty);
-
-        }
-        public event EventHandler ShowRequest;
-        private void RaiseShowRequest()
-        {
-            ShowRequest?.Invoke(this, EventArgs.Empty);
-
-        }
-        private void OnCommandPipeN()
-        {
-            RaiseHideRequest();
-            
-
             UIApplication uiapp = _commandData.Application;
             UIDocument uidoc = uiapp.ActiveUIDocument;
             Document doc = uidoc.Document;
 
-            var pipes = new FilteredElementCollector(doc)
-                  .OfClass(typeof(Pipe))
-                  .Cast<Pipe>()
-                  .ToList();
-
-            TaskDialog.Show("Pipes in the project", pipes.Count.ToString());
-            
-            RaiseShowRequest();
-        }
-        private void OnCommandWallV()
-        {
-            RaiseHideRequest();
+            if (PickedObjects.Count == 0 || SelectedWall == null)
+                return;
+            using (var ts = new Transaction(doc, "Set wall type"))
+            { ts.Start();
+                foreach (var pickedObject in PickedObjects)
+                {  if (pickedObject is Wall)
+                    {
+                        var oWall = pickedObject as Wall;
+                        oWall.ChangeTypeId(SelectedWall.Id);
+                    }
 
 
-            UIApplication uiapp = _commandData.Application;
-            UIDocument uidoc = uiapp.ActiveUIDocument;
-            Document doc = uidoc.Document;
-
-            var walls = new FilteredElementCollector(doc)
-                .OfClass(typeof(Wall))                
-                .Cast<Wall>()
-                .ToList();
-            string wallInfo = string.Empty;
-            double xref = 0;
-            foreach (Wall wall in walls)
-            {
-
-                Parameter Vparameter = wall.get_Parameter(BuiltInParameter.HOST_VOLUME_COMPUTED);
-                if (Vparameter.StorageType == StorageType.Double)
-                { double wallVolume = UnitUtils.ConvertFromInternalUnits(Vparameter.AsDouble(), UnitTypeId.CubicMeters);
-                    xref += wallVolume;
                 }
-                
+
+                ts.Commit();
             }
-
-            wallInfo += $"{xref}";
-            TaskDialog.Show("Volume",wallInfo);
-
-            RaiseShowRequest();
+            RaiseCloseRequest();
         }
-        private void OnCommandDoorN()
-        {
-            RaiseHideRequest();
-
-
-            UIApplication uiapp = _commandData.Application;
-            UIDocument uidoc = uiapp.ActiveUIDocument;
-            Document doc = uidoc.Document;
-
-            var doors = new FilteredElementCollector(doc)
-                  .OfCategory(BuiltInCategory.OST_Doors)
-                  .WhereElementIsNotElementType()
-                  .Cast<FamilyInstance>()
-                  .ToList();
-
-
-            TaskDialog.Show("Columns count", doors.Count.ToString());
-
-            RaiseShowRequest();
-        }
-
+        public event EventHandler CloseRequest;
+        private void RaiseCloseRequest()
+        { CloseRequest?.Invoke(this, EventArgs.Empty); }
+       
     }
 }
